@@ -203,6 +203,5 @@ const BUCKET_NAME = 's3-bucket-name';
 
 ---
 
-# 📜 License
-
-This project is licensed under the MIT License.
+© Copyright 2025 | All Rights Reserved
+Raj Kishor Productions
