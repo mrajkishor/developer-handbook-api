@@ -1,14 +1,15 @@
 {
-  "name": "developer-handbook-api",
+  "name": "markdown-reader-api",
   "version": "1.0.0",
-  "description": "A Node.js + Express API to serve structured developer notes in Markdown format.",
-  "main": "server.js",
+  "description": "Serverless Markdown Reader API using AWS Lambda and S3",
+  "main": "handler.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "sam local start-api",
+    "build": "sam build",
+    "deploy": "sam deploy",
+    "deploy:guided": "sam deploy --guided"
   },
-  "author": "Your Name",
+  "author": "Raj Kishor Maharana",
   "license": "MIT",
-  "dependencies": {
-    "express": "^4.18.2"
-  }
+  "dependencies": {}
 }

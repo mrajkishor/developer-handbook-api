@@ -1,112 +1,208 @@
-# 📚 Markdown Reader API
 
-This project is a simple backend server to **fetch Markdown (`.md`) files** based on a **nested URL path** using a **mapper**.
+
+# 📚 Markdown Reader API – AWS Serverless (Lambda + S3 + API Gateway)
+
+This project builds a **serverless API** to serve **Markdown (`.md`) files** stored in **AWS S3**,  
+using **AWS Lambda**, **API Gateway**, and **AWS SAM CLI** for deployment.
+
+It supports a clean URL-path structure using a **`mapper.js`** file and returns markdown content as JSON via HTTP GET.
 
 ---
 
-## 🏗️ Project Structure
+# 🏗️ Architecture Overview
 
 ```
-project-root/
-├── server.js          # Express server
-├── mapper.js          # URL-to-Markdown ID mapping
-└── markdowns/         # Folder containing .md files
+Client (Browser/App)
+    ↓
+API Gateway (Secure Public API)
+    ↓
+AWS Lambda (Node.js: Find mapper + Fetch markdown)
+    ↓
+AWS S3 (Private Markdown Files)
+```
+
+✅ Fully serverless,  
+✅ Highly scalable,  
+✅ Very low cost (~₹0–5 per month for small use cases).
+
+---
+
+# 📂 Project Structure
+
+```
+markdown-reader-api-aws/
+├── handler.js         # AWS Lambda function code
+├── mapper.js          # Static URL-to-markdown-id mapping
+├── template.yaml      # AWS SAM template to deploy the app
+├── package.json       # NPM scripts for build and deploy
+├── README.md          # Project documentation
+└── markdowns/         # (Locally store markdown files, upload to S3 manually)
     ├── 1.md
     ├── 2.md
-    ├── 3.md
     └── ...
 ```
 
 ---
 
-## 🚀 How It Works
+# 🚀 Features
 
-- The frontend sends a **GET request** with a `path` parameter.
-- The server traverses `mapper.js` to find the corresponding `__md__` ID.
-- It then reads the respective `.md` file from the `markdowns/` folder.
-- Finally, it returns the **markdown content** as JSON.
-
----
-
-## 🛠️ Installation
-
-1. Clone this repository:
-   ```bash
-   git clone <repo-url>
-   cd developer-handbook-api
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install express
-   ```
-
-3. Place your Markdown files (`1.md`, `2.md`, etc.) inside the `markdowns/` folder.
-
-4. Prepare your `mapper.js` according to your URL structure.
+- 📄 Serve markdown notes via simple API endpoint.
+- 🔒 Private S3 bucket — no public file access.
+- 🚀 Fast lookup using `mapper.js` loaded inside Lambda memory.
+- 📈 API Gateway caching and rate limiting supported.
+- ⚡ Minimal cold starts and efficient memory usage.
+- 🧩 Easily extendable for versioning, authentication, etc.
 
 ---
 
-## 📡 API Usage
+# 🧰 Technologies Used
 
-### Endpoint
-```
-GET /api/markdown
+| Tool | Purpose |
+|:---|:---|
+| **AWS S3** | Store Markdown (`.md`) files |
+| **AWS Lambda** | Handle API logic (Node.js) |
+| **AWS API Gateway** | Public API layer with rate limiting and caching |
+| **AWS SAM CLI** | Infrastructure as Code for deployment |
+| **Node.js** | Lambda runtime environment |
+
+---
+
+# 📡 API Usage
+
+## Endpoint
+
+```http
+GET /api/markdown?path={path}
 ```
 
-### Query Parameters
-| Param | Type | Description |
-|:---|:---|:---|
-| `path` | `string` | URL-like path representing the Markdown content to fetch |
+Example:
 
-### Example Request
-```
-GET http://localhost:3000/api/markdown?path=contents/full-stack-developer-course/data-structures/Array/problems/longest-repeating-character-replacement
+```http
+GET https://your-api-id.execute-api.region.amazonaws.com/api/markdown?path=contents/full-stack-developer-course/html/headings
 ```
 
-### Example Response
+## Query Parameters
+
+| Parameter | Type | Required | Description |
+|:---|:---|:---|:---|
+| `path` | String | ✅ | Nested path based on URL structure defined in `mapper.js` |
+
+## Example Successful Response (HTTP 200)
+
 ```json
 {
-  "content": "# Longest Repeating Character Replacement\n\nThis is the Markdown content..."
+  "content": "# Heading\n\nThis is the markdown content here..."
 }
 ```
 
+## Possible Error Responses
+
+| Status | Error |
+|:---|:---|
+| 400 | `{ "error": "Path query parameter is required." }` |
+| 404 | `{ "error": "No mapping found for the given path." }` |
+| 404 | `{ "error": "Markdown file not found." }` |
+| 500 | `{ "error": "Internal Server Error." }` |
+
 ---
 
-## 🔥 Example Frontend Integration
+# 🔥 Quick Start – Local Setup and Deployment
 
-React:
+## 1. Prerequisites
+
+- [AWS Account](https://aws.amazon.com/)
+- [AWS CLI installed](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) and configured (`aws configure`)
+- [AWS SAM CLI installed](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
+- Node.js installed (for local running)
+
+## 2. Project Setup
+
+```bash
+git clone https://github.com/mrajkishor/markdown-reader-api-aws.git
+cd markdown-reader-api-aws
+```
+
+Upload your `.md` files manually to your S3 bucket under `markdowns/`.
+
+## 3. First Deployment (Guided)
+
+```bash
+npm run build
+npm run deploy:guided
+```
+- This will create your first `samconfig.toml`.
+- Choose your AWS region, stack name, and S3 bucket for Lambda artifacts.
+
+✅ Your Lambda + API Gateway will be created automatically.
+
+## 4. Future Deployments (Non-Guided)
+
+After first deploy, use:
+
+```bash
+npm run build
+npm run deploy
+```
+✅ It will automatically build and deploy using the saved configuration.
+
+---
+
+# ⚙️ Environment Configuration
+
+Inside your `handler.js`, configure:
 
 ```javascript
-import { useEffect, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-
-function MarkdownViewer({ path }) {
-  const [content, setContent] = useState('');
-
-  useEffect(() => {
-    fetch(`/api/markdown?path=${encodeURIComponent(path)}`)
-      .then(res => res.json())
-      .then(data => setContent(data.content));
-  }, [path]);
-
-  return <ReactMarkdown>{content}</ReactMarkdown>;
-}
+const BUCKET_NAME = 's3-bucket-name';
 ```
+(change it to your actual S3 bucket name.)
+
+✅ You can later move this to Lambda environment variables if needed.
+
 ---
 
-## 🧠 Notes
+# 📋 Updating `mapper.js` and Markdown Files
 
-- If a Markdown file is not found, the API returns a 404 error. It is the responsibility of the frontend to catch the error and redirect to a fallback page using an ErrorBoundary or error handling logic
-- `mapper.js` should match the exact nesting of URL paths.
+| Task | How to update |
+|:---|:---|
+| Add a new topic | Update `mapper.js`, assign new `___md___` ID |
+| Add new markdown file | Upload corresponding `ID.md` to S3 manually |
+| After changes | Run `npm run build` + `npm run deploy` |
+
+✅ Your API will automatically serve the new content.
+
 ---
 
-# ✨ Future Improvements
+# 📈 Future Enhancements (Optional)
 
-- Caching frequently accessed `.md` files in memory.
-- Adding an admin dashboard to manage `.md` content dynamically.
-- Rate limiting and API authentication for better security.
+- 🔐 Add API Key authentication for restricted access.
+- ⚡ Add CloudFront CDN before API Gateway for global speed boost.
+- 🛡️ Add AWS WAF (Web Application Firewall) for security.
+- 💬 Add multilingual Markdown support.
 
-## 📜 License
+---
 
-This project is open-sourced under the [MIT License](LICENSE).
+# 💵 Cost Estimation
+
+| Service | Expected Monthly Cost (Current Plan) |
+|:---|:---|
+| S3 Storage (1 GB) | ~$0.023 (₹2) |
+| Lambda Invocations (30,000) | Free under AWS Free Tier |
+| API Gateway Requests (30,000) | Free under AWS Free Tier |
+| Total | **~₹2–5 per month** |
+
+✅ You stay within AWS Free Tier for your current usage!
+
+---
+
+# 🙏 Acknowledgements
+
+- [AWS Lambda](https://aws.amazon.com/lambda/)
+- [AWS S3](https://aws.amazon.com/s3/)
+- [AWS API Gateway](https://aws.amazon.com/api-gateway/)
+- [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html)
+
+---
+
+# 📜 License
+
+This project is licensed under the MIT License.

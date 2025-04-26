@@ -1,0 +1,23 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Markdown Reader API (Lambda + S3 + API Gateway)
+
+Resources:
+  MarkdownReaderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handler.handler
+      Runtime: nodejs18.x
+      CodeUri: .
+      Description: Lambda function to serve Markdown files from S3
+      MemorySize: 512
+      Timeout: 10
+      Policies:
+        - S3ReadPolicy:
+            BucketName: your-s3-bucket-name # <-- replace
+      Events:
+        MarkdownApi:
+          Type: HttpApi
+          Properties:
+            Path: /api/markdown
+            Method: get
